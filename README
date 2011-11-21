@@ -18,6 +18,39 @@ You need to enable
 on your device.
 
 
+= Usage =
+
+$ sudo python andreth.py -h
+usage: andreth.py [-h] [-l IP] [-r IP] [-i IFACE]
+
+Reverse tethering over USB for your Android device
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l IP, --local-ip IP  the IP on the host side of the PPP tunnel [default:
+                        192.168.55.51]
+  -r IP, --remote-ip IP
+                        the IP on the device side of the PPP tunnel [default:
+                        192.168.55.52]
+  -i IFACE, --interface IFACE
+                        the interface that provides the internet connection
+                        [default: eth0]
+$
+
+
+= Notes =
+
+ 1.) andreth needs to be run as root in order to 
+      * enable/disable packet forwarding in the kernel
+      * set up/tear down the firewall rules for NATting
+      * create/destroy the PPP tunnel device
+
+ 2.) The local and remote IPs need to be unique in your networking
+     environment. They don't have to be from the same subnet or lie within the
+     same subnet as the interface providing the uplink. So I suggest you chose
+     two IP addresses from an unused private subnet.
+
+
 = Troubleshooting =
 
 In case you don't get replies to your packages, you might wanna check the

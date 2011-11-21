@@ -22,45 +22,42 @@ import sys
 import os
 import re
 import signal
+import argparse
 import subprocess
 
 
-# default values
-host_ip = '192.168.55.51'
-device_ip = '192.168.55.52'
-external_interface = 'eth0'
+# hardcoded values
 dns_resolver = '/etc/resolv.conf'
-
 
 # shell commands
 ## IP forwarding
 get_ip_forward_cmd = ['cat', '/proc/sys/net/ipv4/ip_forward']
 set_ip_forward_template = ['sysctl', 'net.ipv4.ip_forward={value}']
 ## iptables
-iptables_masquerade_cmd = ['iptables',
-                           '-I', 'POSTROUTING',
-                           '-t', 'nat',
-                           '-s', device_ip,
-                           '-j', 'MASQUERADE',
-                           '-o', external_interface
-                          ]
-iptables_revert_cmd = ['iptables',
-                       '-D', 'POSTROUTING',
-                       '-t', 'nat',
-                       '-s', device_ip,
-                       '-j', 'MASQUERADE',
-                       '-o', external_interface
-                      ]
+iptables_masquerade_template = ['iptables',
+                                '-I', 'POSTROUTING',
+                                '-t', 'nat',
+                                '-s', 
+                                '-j', 'MASQUERADE',
+                                '-o'
+                               ]
+iptables_revert_template = ['iptables',
+                            '-D', 'POSTROUTING',
+                            '-t', 'nat',
+                            '-s',
+                            '-j', 'MASQUERADE',
+                            '-o'
+                           ]
 ## PPP tunnel
-establish_tunnel_cmd = ['adb',
-                        'ppp',
-                        'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
-                        'nodetach',
-                        'noauth',
-                        'noipdefault',
-                        'notty',
-                        '{local}:{remote}'.format(local=host_ip, remote=device_ip)
-                       ]
+establish_tunnel_template = ['adb',
+                             'ppp',
+                             'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
+                             'nodetach',
+                             'noauth',
+                             'noipdefault',
+                             'notty',
+                             '{local}:{remote}'
+                            ]
 close_tunnel_cmd = ['ifconfig', 'ppp0', 'down']
 ## DNS on device
 set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
@@ -83,14 +80,19 @@ def set_ip_forwarding(value):
     subprocess.check_call(set_ip_forward_cmd)
 
 
-def configure_firewall():
+def configure_firewall(device_ip, network_interface):
     print 'configuring firewall'
-    subprocess.check_call(iptables_masquerade_cmd)
+    masquerade_cmd = list(iptables_masquerade_template)
+    masquerade_cmd.insert(6, device_ip)
+    masquerade_cmd.insert(10, network_interface)
+    subprocess.check_call(masquerade_cmd)
 
 
-def establish_tunnel():
+def establish_tunnel(local_ip, remote_ip):
     print 'setting up PPP tunnel'
-    subprocess.check_call(establish_tunnel_cmd)
+    tunnel_cmd = list(establish_tunnel_template)
+    tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
+    subprocess.check_call(tunnel_cmd)
 
 
 def configure_android_device():
@@ -130,6 +132,9 @@ def clean_up(signal_number, stack_frame):
         set_ip_forwarding(0)
 
     print 'reverting firewall rules'
+    iptables_revert_cmd = list(iptables_revert_template)
+    iptables_revert_cmd.insert(6, args.remote_ip)
+    iptables_revert_cmd.insert(10, args.interface)
     subprocess.check_call(iptables_revert_cmd)
 
 
@@ -137,6 +142,28 @@ def clean_up(signal_number, stack_frame):
 # main
 #
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Reverse tethering over USB '\
+                                                 'for your Android device')
+
+    parser.add_argument('-l', '--local-ip',
+                        default='192.168.55.51', metavar='IP',
+                        help='the IP on the host side of the PPP tunnel '\
+                             '[default: %(default)s]')
+
+    parser.add_argument('-r', '--remote-ip',
+                        default='192.168.55.52', metavar='IP',
+                        help='the IP on the device side of the PPP tunnel '\
+                             '[default: %(default)s]')
+
+    parser.add_argument('-i', '--interface',
+                        default='eth0', metavar='IFACE',
+                        help='the interface that provides the internet connection '\
+                             '[default: %(default)s]')
+
+    args = parser.parse_args() 
+
+
     # preliminary checks
     ## we are root
     if os.geteuid() != 0:
@@ -150,10 +177,10 @@ if __name__ == '__main__':
     ipforwarding_was_enabled = enable_ip_forwarding()
 
     # firewall rules
-    configure_firewall()
+    configure_firewall(args.remote_ip, args.interface)
 
     # establish PPP tunnel
-    establish_tunnel()
+    establish_tunnel(args.local_ip, args.remote_ip)
 
     # configure device
     configure_android_device()
