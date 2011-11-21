@@ -8,6 +8,7 @@ the internet.
 = Prerequisites =
 
 You'll need
+ * python 2.7
  * the Android SDK on your linux box[0]
    * a working adb setup[1]
  * the ability to execute commands as root on your maschine[2]
