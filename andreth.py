@@ -44,7 +44,13 @@ iptables_masquerade_cmd = ['iptables',
                            '-j', 'MASQUERADE',
                            '-o', external_interface
                           ]
-iptables_revert_cmd = ['iptables', '-t', 'nat', '--flush']
+iptables_revert_cmd = ['iptables',
+                       '-D', 'POSTROUTING',
+                       '-t', 'nat',
+                       '-s', device_ip,
+                       '-j', 'MASQUERADE',
+                       '-o', external_interface
+                      ]
 ## PPP tunnel
 establish_tunnel_cmd = ['adb',
                         'ppp',
@@ -124,7 +130,6 @@ def clean_up(signal_number, stack_frame):
         set_ip_forwarding(0)
 
     print 'reverting firewall rules'
-    ### DANGER !! DEVEL DUMMY !! DANGER ###
     subprocess.check_call(iptables_revert_cmd)
 
 
