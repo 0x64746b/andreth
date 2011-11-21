@@ -58,7 +58,7 @@ establish_tunnel_template = ['adb',
                              'notty',
                              '{local}:{remote}'
                             ]
-close_tunnel_cmd = ['ifconfig', 'ppp0', 'down']
+close_tunnel_template = ['pkill', '-f', 'pppd.+{local}:{remote}']
 ## DNS on device
 set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
 
@@ -125,6 +125,11 @@ def clean_up(signal_number, stack_frame):
     """
     print '\n'
     print 'closing tunnel'
+    close_tunnel_cmd = list(close_tunnel_template)
+    close_tunnel_cmd[2] = close_tunnel_cmd[2].format(
+                                               local=re.escape(args.local_ip),
+                                               remote=re.escape(args.remote_ip)
+                                                    )
     subprocess.check_call(close_tunnel_cmd)
 
     if not ipforwarding_was_enabled:
