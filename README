@@ -11,7 +11,7 @@ You'll need
  * python 2.7
  * the Android SDK on your linux box[0]
    * a working adb setup[1]
- * the ability to execute commands as root on your maschine[2]
+ * the ability to execute commands as root on your machine[2]
 
 You need to enable
  * USB debugging[3]
@@ -29,13 +29,16 @@ firewall rules on your linux box. cf [6].
 I stole the information on how to make Android use reverse tethering over USB
 from xda developers[4] and wrapped them in this small script. All props to them.
 
+In addition, I borrowed the syntax to teach iptables NATting rules from
+freyo[6]. Thx to him as well.
+
 
 = More Information =
 
 In case this script is too basic for your needs, you can find more information
 here[5][6].
 
-Obviously I would be glad if you forked this project, patched the script and
+Obviously, I would be glad if you forked this project, patched the script and
 sent me merge requests so everyone may profit from your enhancements. Thx.
 
 
