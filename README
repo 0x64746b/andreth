@@ -1,0 +1,43 @@
+= About =
+
+andreth is a basic _And_roid _re_verse te_th_ering script that will allow your
+Android powered device to use the LAN connection of your linux box to connect to
+the internet.
+
+
+= Prerequisites =
+
+You'll need
+ * the Android SDK on your linux box[0]
+   * a working adb setup[1]
+ * the ability to execute commands as root on your maschine[2]
+
+You need to enable
+ * USB debugging[3]
+on your device.
+
+
+= Disclaimer =
+
+I stole the information on how to make Android use reverse tethering over USB
+from xda developers[4] and wrapped them in this small script. All props to them.
+
+
+= More Information =
+
+In case this script is too basic for your needs, you can find more information
+here[5][6].
+
+Obviously I would be glad if you forked this project, patched the script and
+sent me merge requests so everyone may profit from your enhancements. Thx.
+
+
+-----
+[0] http://developer.android.com/sdk/index.html
+[1] cf http://forum.xda-developers.com/showthread.php?t=640158
+    for the 'no permissions' problem
+[2] for setting up the tunnel device
+[3] so andreth can configure it via the USB connection
+[4] http://forum.xda-developers.com/showthread.php?t=835912
+[5] http://blog.mycila.com/2010/06/reverse-usb-tethering-with-android-22.html
+[6] http://www.xinotes.org/notes/note/1500/
