@@ -17,6 +17,12 @@ You need to enable
 on your device.
 
 
+= Troubleshooting =
+
+In case you don't get replies to your packages, you might wanna check the
+firewall rules on your linux box. cf [6].
+
+
 = Disclaimer =
 
 I stole the information on how to make Android use reverse tethering over USB
