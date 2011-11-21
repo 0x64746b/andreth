@@ -37,14 +37,24 @@ dns_resolver = '/etc/resolv.conf'
 get_ip_forward_cmd = ['cat', '/proc/sys/net/ipv4/ip_forward']
 set_ip_forward_template = ['sysctl', 'net.ipv4.ip_forward={value}']
 ## iptables
-iptables_masquerade_cmd = ['iptables', '-t', 'nat', '-I', 'POSTROUTING', '-s',
-                           device_ip, '-j', 'MASQUERADE', '-o', external_interface]
+iptables_masquerade_cmd = ['iptables',
+                           '-I', 'POSTROUTING',
+                           '-t', 'nat',
+                           '-s', device_ip,
+                           '-j', 'MASQUERADE',
+                           '-o', external_interface
+                          ]
 iptables_revert_cmd = ['iptables', '-t', 'nat', '--flush']
 ## PPP tunnel
-establish_tunnel_cmd = ['adb', 'ppp',
+establish_tunnel_cmd = ['adb',
+                        'ppp',
                         'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
-                        'nodetach', 'noauth', 'noipdefault', 'notty',
-                        '{}:{}'.format(host_ip, device_ip)]
+                        'nodetach',
+                        'noauth',
+                        'noipdefault',
+                        'notty',
+                        '{local}:{remote}'.format(local=host_ip, remote=device_ip)
+                       ]
 close_tunnel_cmd = ['ifconfig', 'ppp0', 'down']
 ## DNS on device
 set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
