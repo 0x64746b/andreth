@@ -20,18 +20,16 @@
 
 import sys
 import os
+import re
 import signal
 import subprocess
-
-
-# hardcoded values
-dns_ip = '192.168.1.1'
 
 
 # default values
 host_ip = '192.168.55.51'
 device_ip = '192.168.55.52'
 external_interface = 'eth0'
+dns_resolver = '/etc/resolv.conf'
 
 
 # shell commands
@@ -49,7 +47,7 @@ establish_tunnel_cmd = ['adb', 'ppp',
                         '{}:{}'.format(host_ip, device_ip)]
 close_tunnel_cmd = ['ifconfig', 'ppp0', 'down']
 ## DNS on device
-set_dns_template = ['adb', 'shell', 'setprop', 'net.dns1']
+set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
 
 
 def enable_ip_forwarding():
@@ -80,15 +78,26 @@ def establish_tunnel():
 
 
 def configure_android_device():
-    print 'setting the DNS server'
-    dns_cmd = list(set_dns_template)
-    dns_cmd.append(get_dns_server())
-    subprocess.check_call(dns_cmd)
+    print 'setting the DNS servers'
+    dns_num = 1
+    for dns_server in get_dns_servers():
+        print ' * {}'.format(dns_server)
+        dns_cmd = list(set_dns_template)
+        dns_cmd[3] = dns_cmd[3].format(num=dns_num)
+        dns_cmd.append(dns_server)
+        subprocess.check_call(dns_cmd)
+        dns_num += 1
 
 
-def get_dns_server():
-    ### DEVEL DUMMY ###
-    return dns_ip
+def get_dns_servers():
+    dns_file = open(dns_resolver, 'r')
+
+    for entry in dns_file.readlines():
+        nameserver = re.match(r'nameserver (\d+\.\d+\.\d+\.\d+)', entry)
+        if nameserver:
+            yield nameserver.group(1)
+
+    dns_file.close()
 
 
 def clean_up(signal_number, stack_frame):
