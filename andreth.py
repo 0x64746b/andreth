@@ -156,8 +156,43 @@ def clean_up(signal_number, stack_frame):
 
     revert_firewall(args.remote_ip, args.interface)
 
+
+def main(args):
+    """
+    The main control flow
+    """
+    # preliminary checks
+    ## we are root
+    if os.geteuid() != 0:
+        print 'Sorry, you have to be root to run this script.'
+        sys.exit(1)
+
+    # handle signals
+    signal.signal(signal.SIGINT, clean_up)
+
+    # IP forwarding
+    global ipforwarding_was_enabled
+    ipforwarding_was_enabled = enable_ip_forwarding()
+
+    # firewall rules
+    configure_firewall(args.remote_ip, args.interface)
+
+    # establish PPP tunnel
+    establish_tunnel(args.local_ip, args.remote_ip)
+
+    # configure device
+    configure_android_device()
+
+    print 'Your device can now access the internet via the established tunnel.\n' \
+          'Press <Ctrl+c> to terminate the connection.'
+
+    # wait for interrupt
+    signal.pause()
+
+
+
 #
-# main
+# Command line parsing
 #
 if __name__ == '__main__':
 
@@ -181,30 +216,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args() 
 
+    ipforwarding_was_enabled = 0
 
-    # preliminary checks
-    ## we are root
-    if os.geteuid() != 0:
-        print 'Sorry, you have to be root to run this script.'
-        sys.exit(1)
-
-    # handle signals
-    signal.signal(signal.SIGINT, clean_up)
-
-    # IP forwarding
-    ipforwarding_was_enabled = enable_ip_forwarding()
-
-    # firewall rules
-    configure_firewall(args.remote_ip, args.interface)
-
-    # establish PPP tunnel
-    establish_tunnel(args.local_ip, args.remote_ip)
-
-    # configure device
-    configure_android_device()
-
-    print 'Your device can now access the internet via the established tunnel.\n' \
-          'Press <Ctrl+c> to terminate the connection.'
-
-    # wait for interrupt
-    signal.pause()
+    main(args)
