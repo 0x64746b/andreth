@@ -88,11 +88,35 @@ def configure_firewall(device_ip, network_interface):
     subprocess.check_call(masquerade_cmd)
 
 
+def revert_firewall(remote_ip, network_interface):
+    print 'reverting firewall rules'
+    iptables_revert_cmd = list(iptables_revert_template)
+    iptables_revert_cmd.insert(6, remote_ip)
+    iptables_revert_cmd.insert(10, network_interface)
+    try:
+        subprocess.check_call(iptables_revert_cmd)
+    except subprocess.CalledProcessError:
+        print 'ERROR: Could not revert firewall rules'
+
+
 def establish_tunnel(local_ip, remote_ip):
     print 'setting up PPP tunnel'
     tunnel_cmd = list(establish_tunnel_template)
     tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
     subprocess.check_call(tunnel_cmd)
+
+
+def destroy_tunnel(local_ip, remote_ip):
+    print 'closing tunnel'
+    close_tunnel_cmd = list(close_tunnel_template)
+    close_tunnel_cmd[2] = close_tunnel_cmd[2].format(
+                                               local=re.escape(local_ip),
+                                               remote=re.escape(remote_ip)
+                                                    )
+    try:
+        subprocess.check_call(close_tunnel_cmd)
+    except subprocess.CalledProcessError:
+        print 'ERROR: Could not destroy tunnel device'
 
 
 def configure_android_device():
@@ -124,24 +148,13 @@ def clean_up(signal_number, stack_frame):
     Called by a signal interrupt.
     """
     print '\n'
-    print 'closing tunnel'
-    close_tunnel_cmd = list(close_tunnel_template)
-    close_tunnel_cmd[2] = close_tunnel_cmd[2].format(
-                                               local=re.escape(args.local_ip),
-                                               remote=re.escape(args.remote_ip)
-                                                    )
-    subprocess.check_call(close_tunnel_cmd)
+    destroy_tunnel(args.local_ip, args.remote_ip)
 
     if not ipforwarding_was_enabled:
         print "disabling IPv4 forwarding"
         set_ip_forwarding(0)
 
-    print 'reverting firewall rules'
-    iptables_revert_cmd = list(iptables_revert_template)
-    iptables_revert_cmd.insert(6, args.remote_ip)
-    iptables_revert_cmd.insert(10, args.interface)
-    subprocess.check_call(iptables_revert_cmd)
-
+    revert_firewall(args.remote_ip, args.interface)
 
 #
 # main
