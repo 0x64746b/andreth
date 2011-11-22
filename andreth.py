@@ -21,7 +21,7 @@
 import sys
 import os
 import re
-import signal
+import atexit
 import argparse
 import subprocess
 
@@ -142,7 +142,7 @@ def get_dns_servers():
     dns_file.close()
 
 
-def clean_up(signal_number, stack_frame):
+def clean_up():
     """
     Clean up before terminating the script.
     Called by a signal interrupt.
@@ -167,8 +167,8 @@ def main(args):
         print 'Sorry, you have to be root to run this script.'
         sys.exit(1)
 
-    # handle signals
-    signal.signal(signal.SIGINT, clean_up)
+    # clean up before leaving
+    atexit.register(clean_up)
 
     # IP forwarding
     global ipforwarding_was_enabled
@@ -184,11 +184,13 @@ def main(args):
     configure_android_device()
 
     print 'Your device can now access the internet via the established tunnel.\n' \
-          'Press <Ctrl+c> to terminate the connection.'
+          'Press <Ctrl+d> to terminate the connection.'
 
-    # wait for interrupt
-    signal.pause()
-
+    # wait for EOF, cope with SIGINT
+    try:
+        sys.stdin.read()
+    except KeyboardInterrupt:
+        pass
 
 
 #
