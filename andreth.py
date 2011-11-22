@@ -27,12 +27,10 @@ import subprocess
 
 
 # hardcoded values
+ip_forwarder = '/proc/sys/net/ipv4/ip_forward'
 dns_resolver = '/etc/resolv.conf'
 
 # shell commands
-## IP forwarding
-get_ip_forward_cmd = ['cat', '/proc/sys/net/ipv4/ip_forward']
-set_ip_forward_template = ['sysctl', 'net.ipv4.ip_forward={value}']
 ## iptables
 iptables_masquerade_template = ['iptables',
                                 '-I', 'POSTROUTING',
@@ -64,7 +62,9 @@ set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
 
 
 def enable_ip_forwarding():
-    ipforwarding_was_enabled = int(subprocess.check_output(get_ip_forward_cmd))
+    forward_file = open(ip_forwarder, 'r')
+    ipforwarding_was_enabled = int(forward_file.readline())
+    forward_file.close()
 
     if not ipforwarding_was_enabled:
         print "enabling IPv4 forwarding"
@@ -75,9 +75,9 @@ def enable_ip_forwarding():
 
 def set_ip_forwarding(value):
     assert value in range(2)
-    set_ip_forward_cmd = list(set_ip_forward_template)
-    set_ip_forward_cmd[1] = set_ip_forward_cmd[1].format(value=value)
-    subprocess.check_call(set_ip_forward_cmd)
+    forward_file = open(ip_forwarder, 'w')
+    forward_file.write(str(value))
+    forward_file.close()
 
 
 def configure_firewall(device_ip, network_interface):
