@@ -99,9 +99,10 @@ def revert_firewall(remote_ip, network_interface):
         print 'ERROR: Could not revert firewall rules'
 
 
-def establish_tunnel(local_ip, remote_ip):
+def establish_tunnel(local_ip, remote_ip, adb_bin):
     print 'setting up PPP tunnel'
     tunnel_cmd = list(establish_tunnel_template)
+    tunnel_cmd[0] = adb_bin
     tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
     subprocess.check_call(tunnel_cmd)
 
@@ -119,12 +120,13 @@ def destroy_tunnel(local_ip, remote_ip):
         print 'ERROR: Could not destroy tunnel device'
 
 
-def configure_android_device():
+def configure_android_device(adb_bin):
     print 'setting the DNS servers'
     dns_num = 1
     for dns_server in get_dns_servers():
         print ' * {}'.format(dns_server)
         dns_cmd = list(set_dns_template)
+        dns_cmd[0] = adb_bin
         dns_cmd[3] = dns_cmd[3].format(num=dns_num)
         dns_cmd.append(dns_server)
         subprocess.check_call(dns_cmd)
@@ -178,10 +180,10 @@ def main(args):
     configure_firewall(args.remote_ip, args.interface)
 
     # establish PPP tunnel
-    establish_tunnel(args.local_ip, args.remote_ip)
+    establish_tunnel(args.local_ip, args.remote_ip, args.adb)
 
     # configure device
-    configure_android_device()
+    configure_android_device(args.adb)
 
     print 'Your device can now access the internet via the established tunnel.\n' \
           'Press <Ctrl+d> to terminate the connection.'
@@ -215,6 +217,9 @@ if __name__ == '__main__':
                         default='eth0', metavar='IFACE',
                         help='the interface that provides the internet connection '\
                              '[default: %(default)s]')
+    parser.add_argument('-a', '--adb',
+                        default='adb', metavar='/path/to/adb',
+                        help='path to adb binary [default: %(default)s]')
 
     args = parser.parse_args()
 
