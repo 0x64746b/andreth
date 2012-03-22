@@ -35,7 +35,7 @@ dns_resolver = '/etc/resolv.conf'
 iptables_masquerade_template = ['iptables',
                                 '-I', 'POSTROUTING',
                                 '-t', 'nat',
-                                '-s', 
+                                '-s',
                                 '-j', 'MASQUERADE',
                                 '-o'
                                ]
@@ -216,7 +216,7 @@ if __name__ == '__main__':
                         help='the interface that provides the internet connection '\
                              '[default: %(default)s]')
 
-    args = parser.parse_args() 
+    args = parser.parse_args()
 
     ipforwarding_was_enabled = 0
 
