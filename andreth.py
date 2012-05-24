@@ -27,6 +27,8 @@ import subprocess
 
 
 # hardcoded values
+placeholder = '%PLACEHOLDER%'
+
 ip_forwarder = '/proc/sys/net/ipv4/ip_forward'
 dns_resolver = '/etc/resolv.conf'
 
@@ -35,19 +37,19 @@ dns_resolver = '/etc/resolv.conf'
 iptables_masquerade_template = ['iptables',
                                 '-I', 'POSTROUTING',
                                 '-t', 'nat',
-                                '-s',
+                                '-s', placeholder,
                                 '-j', 'MASQUERADE',
-                                '-o'
+                                '-o', placeholder
                                ]
 iptables_revert_template = ['iptables',
                             '-D', 'POSTROUTING',
                             '-t', 'nat',
-                            '-s',
+                            '-s', placeholder,
                             '-j', 'MASQUERADE',
-                            '-o'
+                            '-o', placeholder
                            ]
 ## PPP tunnel
-establish_tunnel_template = ['adb',
+establish_tunnel_template = [placeholder,
                              'ppp',
                              'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
                              'nodetach',
@@ -58,7 +60,7 @@ establish_tunnel_template = ['adb',
                             ]
 close_tunnel_template = ['pkill', '-f', 'pppd.+{local}:{remote}']
 ## DNS on device
-set_dns_template = ['adb', 'shell', 'setprop', 'net.dns{num}']
+set_dns_template = [placeholder, 'shell', 'setprop', 'net.dns{num}']
 
 
 def enable_ip_forwarding():
@@ -83,23 +85,23 @@ def set_ip_forwarding(value):
 def configure_firewall(device_ip, network_interface):
     print 'configuring firewall'
     masquerade_cmd = list(iptables_masquerade_template)
-    masquerade_cmd.insert(6, device_ip)
-    masquerade_cmd.insert(10, network_interface)
+    masquerade_cmd[6] = device_ip
+    masquerade_cmd[10] = network_interface
     subprocess.check_call(masquerade_cmd)
 
 
 def revert_firewall(remote_ip, network_interface):
     print 'reverting firewall rules'
     iptables_revert_cmd = list(iptables_revert_template)
-    iptables_revert_cmd.insert(6, remote_ip)
-    iptables_revert_cmd.insert(10, network_interface)
+    iptables_revert_cmd[6] = remote_ip
+    iptables_revert_cmd[10] = network_interface
     try:
         subprocess.check_call(iptables_revert_cmd)
     except subprocess.CalledProcessError:
         print 'ERROR: Could not revert firewall rules'
 
 
-def establish_tunnel(local_ip, remote_ip, adb_bin):
+def establish_tunnel(adb_bin, local_ip, remote_ip):
     print 'setting up PPP tunnel'
     tunnel_cmd = list(establish_tunnel_template)
     tunnel_cmd[0] = adb_bin
@@ -180,7 +182,7 @@ def main(args):
     configure_firewall(args.remote_ip, args.interface)
 
     # establish PPP tunnel
-    establish_tunnel(args.local_ip, args.remote_ip, args.adb)
+    establish_tunnel(args.adb, args.local_ip, args.remote_ip)
 
     # configure device
     configure_android_device(args.adb)
