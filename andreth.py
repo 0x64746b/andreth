@@ -27,10 +27,12 @@ import subprocess
 
 
 # hardcoded values
-placeholder = '%PLACEHOLDER%'
-
 ip_forwarder = '/proc/sys/net/ipv4/ip_forward'
 dns_resolver = '/etc/resolv.conf'
+
+placeholder = '%PLACEHOLDER%'
+target_device_flag = '-d'
+serial_number_flag = '-s'
 
 # shell commands
 ## iptables
@@ -50,7 +52,6 @@ iptables_revert_template = ['iptables',
                            ]
 ## PPP tunnel
 establish_tunnel_template = [placeholder,
-                             '-d',
                              'ppp',
                              'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
                              'nodetach',
@@ -61,8 +62,16 @@ establish_tunnel_template = [placeholder,
                             ]
 close_tunnel_template = ['pkill', '-f', 'pppd.+{local}:{remote}']
 ## DNS on device
-set_dns_template = [placeholder, '-d', 'shell', 'setprop', 'net.dns{num}']
+set_dns_template = [placeholder, 'shell', 'setprop',
+                    'net.dns{num}', placeholder]
 
+
+def _inject_target(command, serial_number):
+    if not serial_number:
+        command.insert(1, target_device_flag)
+    else:
+        command.insert(1, serial_number_flag)
+        command.insert(2, serial_number)
 
 def enable_ip_forwarding():
     forward_file = open(ip_forwarder, 'r')
@@ -102,11 +111,12 @@ def revert_firewall(remote_ip, network_interface):
         print 'ERROR: Could not revert firewall rules'
 
 
-def establish_tunnel(adb_bin, local_ip, remote_ip):
+def establish_tunnel(adb_bin, serial_number, local_ip, remote_ip):
     print 'setting up PPP tunnel'
     tunnel_cmd = list(establish_tunnel_template)
     tunnel_cmd[0] = adb_bin
-    tunnel_cmd[8] = tunnel_cmd[8].format(local=local_ip, remote=remote_ip)
+    tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
+    _inject_target(tunnel_cmd, serial_number)
     try:
         subprocess.check_call(tunnel_cmd)
     except (subprocess.CalledProcessError, OSError) as err:
@@ -127,15 +137,16 @@ def destroy_tunnel(local_ip, remote_ip):
         print 'ERROR: Could not destroy tunnel device'
 
 
-def configure_android_device(adb_bin):
+def configure_android_device(adb_bin, serial_number):
     print 'setting the DNS servers'
     dns_num = 1
     for dns_server in get_dns_servers():
         print ' * {}'.format(dns_server)
         dns_cmd = list(set_dns_template)
         dns_cmd[0] = adb_bin
-        dns_cmd[4] = dns_cmd[4].format(num=dns_num)
-        dns_cmd.append(dns_server)
+        dns_cmd[3] = dns_cmd[3].format(num=dns_num)
+        dns_cmd[4] = dns_server
+        _inject_target(dns_cmd, serial_number)
         subprocess.check_call(dns_cmd)
         dns_num += 1
 
@@ -187,10 +198,11 @@ def main(args):
     configure_firewall(args.remote_ip, args.interface)
 
     # establish PPP tunnel
-    establish_tunnel(args.adb, args.local_ip, args.remote_ip)
+    establish_tunnel(args.adb, args.serial_number,
+                     args.local_ip, args.remote_ip)
 
     # configure device
-    configure_android_device(args.adb)
+    configure_android_device(args.adb, args.serial_number)
 
     print 'Your device can now access the internet via the established tunnel.\n' \
           'Press <Ctrl+d> to terminate the connection.'
@@ -222,11 +234,15 @@ if __name__ == '__main__':
 
     parser.add_argument('-i', '--interface',
                         default='eth0', metavar='IFACE',
-                        help='the interface that provides the internet connection '\
-                             '[default: %(default)s]')
+                        help='the interface that provides the internet '\
+                             'connection [default: %(default)s]')
     parser.add_argument('-a', '--adb',
                         default='adb', metavar='/path/to/adb',
-                        help='path to adb binary [default: %(default)s]')
+                        help='the path to the adb binary [default: %(default)s]')
+    parser.add_argument('-s', '--serial-number',
+                        default=None, metavar='SN',
+                        help='the serial number of the device you want to '\
+                             'connect to if there is more than one real device')
 
     args = parser.parse_args()
 
