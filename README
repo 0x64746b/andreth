@@ -40,7 +40,7 @@ $
 
 = Notes =
 
- 1.) andreth needs to be run as root in order to 
+ 1.) andreth needs to be run as root in order to
       * enable/disable packet forwarding in the kernel
       * set up/tear down the firewall rules for NATting
       * create/destroy the PPP tunnel device
