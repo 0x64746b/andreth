@@ -50,6 +50,7 @@ iptables_revert_template = ['iptables',
                            ]
 ## PPP tunnel
 establish_tunnel_template = [placeholder,
+                             '-d',
                              'ppp',
                              'shell:pppd nodetach noauth noipdefault defaultroute /dev/tty',
                              'nodetach',
@@ -60,7 +61,7 @@ establish_tunnel_template = [placeholder,
                             ]
 close_tunnel_template = ['pkill', '-f', 'pppd.+{local}:{remote}']
 ## DNS on device
-set_dns_template = [placeholder, 'shell', 'setprop', 'net.dns{num}']
+set_dns_template = [placeholder, '-d', 'shell', 'setprop', 'net.dns{num}']
 
 
 def enable_ip_forwarding():
@@ -105,7 +106,7 @@ def establish_tunnel(adb_bin, local_ip, remote_ip):
     print 'setting up PPP tunnel'
     tunnel_cmd = list(establish_tunnel_template)
     tunnel_cmd[0] = adb_bin
-    tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
+    tunnel_cmd[8] = tunnel_cmd[8].format(local=local_ip, remote=remote_ip)
     try:
         subprocess.check_call(tunnel_cmd)
     except (subprocess.CalledProcessError, OSError) as err:
@@ -133,7 +134,7 @@ def configure_android_device(adb_bin):
         print ' * {}'.format(dns_server)
         dns_cmd = list(set_dns_template)
         dns_cmd[0] = adb_bin
-        dns_cmd[3] = dns_cmd[3].format(num=dns_num)
+        dns_cmd[4] = dns_cmd[4].format(num=dns_num)
         dns_cmd.append(dns_server)
         subprocess.check_call(dns_cmd)
         dns_num += 1
