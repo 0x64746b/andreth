@@ -106,7 +106,11 @@ def establish_tunnel(adb_bin, local_ip, remote_ip):
     tunnel_cmd = list(establish_tunnel_template)
     tunnel_cmd[0] = adb_bin
     tunnel_cmd[7] = tunnel_cmd[7].format(local=local_ip, remote=remote_ip)
-    subprocess.check_call(tunnel_cmd)
+    try:
+        subprocess.check_call(tunnel_cmd)
+    except (subprocess.CalledProcessError, OSError) as err:
+        print 'ERROR: Could not establish tunnel: {}'.format(err)
+        sys.exit(1)
 
 
 def destroy_tunnel(local_ip, remote_ip):
